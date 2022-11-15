@@ -97,6 +97,13 @@
     <a onclick="MovieBrowser.buildMovieList()"><h1 id="main-title">Movie browser</h1></a>
     <form>
       <label>
+        Show different movies:
+        <input id="movie-lookup" type="text" placeholder="Enter an movie's name">
+      </label>
+      <button id="movie-lookup-submit" type="submit">Submit</button>
+    </form>
+    <form>
+      <label>
         Show actors by name:
         <input id="person-lookup" type="text" placeholder="Enter an actor's name">
       </label>
@@ -116,28 +123,35 @@ const MovieBrowser = {
 
   parseOnLoadForLatestMovies() {
     this.apiGetter(this.API_BASE_MOVIES_URL+"star wars").then((incoming)=> {
-      console.log(incoming);
       this.dataBundle = incoming;
       this.buildMovieList();
-      document.querySelector("#loader").classList.add("hide");
     });
 
-    this.initPersonLookup();
+    this.initLookups();
   },
 
-  initPersonLookup() {
+  initLookups() {
     let that = this;
 
     document.querySelector("#person-lookup-submit").addEventListener("click", function(event){
       let thisLookup = document.querySelector("#person-lookup").value;
       event.preventDefault();
-      console.log(event);
 
       that.apiGetter(that.API_BASE_PEOPLE_URL+thisLookup).then((incoming) => {
-        console.log(incoming);
         that.personLookupBundle = incoming;
         that.buildPersonList();
         document.querySelector("#person-lookup").value = "";
+      });
+    });
+
+    document.querySelector("#movie-lookup-submit").addEventListener("click", function(event){
+      let thisMovieLookup = document.querySelector("#movie-lookup").value;
+      event.preventDefault();
+
+      that.apiGetter(that.API_BASE_MOVIES_URL+thisMovieLookup).then((incoming) => {
+        that.dataBundle = incoming;
+        that.buildMovieList();
+        document.querySelector("#movie-lookup").value = "";
       });
     });
   },
@@ -165,7 +179,9 @@ const MovieBrowser = {
     for (var index = 0; index < incomingDataBundle.length; index++) {
       builder += '<li>';
         builder += '<div class="titles">' +incomingDataBundle[index].show.name + '</div>';
-        builder += '<img class="movie-img" onclick="MovieBrowser.renderThisMovie(\''+incomingDataBundle[index].show.id+'\')" src="'+incomingDataBundle[index].show.image.medium+'">';
+        if (incomingDataBundle[index].show.image != null) {
+          builder += '<img class="movie-img" onclick="MovieBrowser.renderThisMovie(\''+incomingDataBundle[index].show.id+'\')" src="'+incomingDataBundle[index].show.image.medium+'">';
+        }
       builder += '</li>';
     }
     builder += "</ul>";
