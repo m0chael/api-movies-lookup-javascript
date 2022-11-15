@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Movie Browser - API Challenge</title>
+  <style>
+    body {
+      margin:0;
+      padding:0;
+    }
+
+    ul {
+      list-style-type: none;
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-gap:2rem;
+      padding-left:0;
+    }
+
+    ul li {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items:center;
+    }
+
+    ul li .titles {
+      background-color: rgb(131, 180, 255);
+      color:black;
+      padding:1rem;
+      margin-bottom:1rem;
+    }
+
+
+    section {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: rgb(131, 180, 255);
+      color:black;
+      margin-bottom:5rem;
+      padding-left:2rem;
+      padding-right:2rem;
+    }
+
+    section a {
+      cursor: pointer;
+    }
+
+    section a:hover {
+      color:gray;
+    }
+
+    .movie-img {
+      cursor: pointer;
+    }
+
+    .movie-img:hover {
+      opacity: 0.7;
+    }
+
+    .tags {
+      background-color: lightgray;
+      margin-bottom:0.25rem;
+    }
+
+    #movie-list.individual-list ul {
+      grid-template-columns: 1fr;
+    }
+
+    ul li .tags-list {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: row;
+    }
+
+    .tags {
+      margin-right:1rem;
+      padding:0.33rem;
+    }
+
+    ul li p {
+      max-width:600px;
+    }
+    @media screen and (min-width:700px) {
+      ul {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section>
+    <a onclick="MovieBrowser.buildMovieList()"><h1 id="main-title">Movie browser</h1></a>
+    <form>
+      <label>
+        Show actors by name:
+        <input id="person-lookup" type="text" placeholder="Enter an actor's name">
+      </label>
+      <button id="person-lookup-submit" type="submit">Submit</button>
+    </form>
+  </section>
+
+  <div id="movie-list"></div>
+<script>
+
+
+const MovieBrowser = {
+  API_BASE_MOVIES_URL: "https://api.tvmaze.com/search/shows?q=",
+  API_BASE_PEOPLE_URL: "https://api.tvmaze.com/search/people?q=",
+  dataBundle: null,
+  personLookupBundle: null,
+
+  parseOnLoadForLatestMovies() {
+    this.apiGetter(this.API_BASE_MOVIES_URL+"star wars").then((incoming)=> {
+      console.log(incoming);
+      this.dataBundle = incoming;
+      this.buildMovieList();
+      document.querySelector("#loader").classList.add("hide");
+    });
+
+    this.initPersonLookup();
+  },
+
+  initPersonLookup() {
+    let that = this;
+
+    document.querySelector("#person-lookup-submit").addEventListener("click", function(event){
+      let thisLookup = document.querySelector("#person-lookup").value;
+      event.preventDefault();
+      console.log(event);
+
+      that.apiGetter(that.API_BASE_PEOPLE_URL+thisLookup).then((incoming) => {
+        console.log(incoming);
+        that.personLookupBundle = incoming;
+        that.buildPersonList();
+        document.querySelector("#person-lookup").value = "";
+      });
+    });
+  },
+
+  buildPersonList() {
+    let incomingDataBundle = this.personLookupBundle;
+    let builder = "<ul>";
+    for (var index = 0; index < incomingDataBundle.length; index++) {
+      builder += '<li>';
+        builder += '<div class="titles">' +incomingDataBundle[index].person.name + '</div>';
+        if (incomingDataBundle[index].person.image != null) {
+          builder += '<img src="'+incomingDataBundle[index].person.image.medium+'">';
+        }
+      builder += '</li>';
+    }
+    builder += "</ul>";
+    document.querySelector("#movie-list").innerHTML = builder;
+    document.querySelector("#movie-list").classList.remove("individual-list");
+    document.querySelector("#main-title").textContent = "Actor Lookup";
+  },
+
+  buildMovieList() {
+    let incomingDataBundle = this.dataBundle;
+    let builder = "<ul>";
+    for (var index = 0; index < incomingDataBundle.length; index++) {
+      builder += '<li>';
+        builder += '<div class="titles">' +incomingDataBundle[index].show.name + '</div>';
+        builder += '<img class="movie-img" onclick="MovieBrowser.renderThisMovie(\''+incomingDataBundle[index].show.id+'\')" src="'+incomingDataBundle[index].show.image.medium+'">';
+      builder += '</li>';
+    }
+    builder += "</ul>";
+    document.querySelector("#movie-list").innerHTML = builder;
+    document.querySelector("#movie-list").classList.remove("individual-list");
+    document.querySelector("#main-title").textContent = "Movie Browser";
+  },
+
+  renderThisMovie(incomingId) {
+    let incomingDataBundle = this.dataBundle;
+
+    let builder = "<ul>";
+    for (var index = 0; index < incomingDataBundle.length; index++) {
+      if (incomingDataBundle[index].show.id == incomingId) {
+        builder += '<li>';
+          builder += '<div class="titles">' +incomingDataBundle[index].show.name + '</div>';
+          builder += this.buildTags(incomingDataBundle[index].show.genres);
+          builder += incomingDataBundle[index].show.summary;
+          builder += '<img onclick="MovieBrowser.renderThisMovie(\''+incomingDataBundle[index].show.id+'\')" src="'+incomingDataBundle[index].show.image.medium+'">';
+        builder += '</li>';
+      }
+    }
+    builder += "</ul>";
+    document.querySelector("#movie-list").innerHTML = builder;
+    document.querySelector("#movie-list").classList.add("individual-list");
+    document.querySelector("#main-title").textContent = "Go back";
+  },
+
+  buildTags(tagBundle) {
+    let builder = '<div class="tags-list">';
+    for (var tagIndex = 0; tagIndex < tagBundle.length; tagIndex++) {
+      builder += '<div class="tags">'+tagBundle[tagIndex]+'</div>';
+    }
+    builder += '</div>';
+    return builder;
+  },
+
+  async apiGetter(queryString) {
+    const response = await fetch(queryString)
+    .then((response) => {
+      return response.json();
+    })
+    .catch((err) => {
+      throw new Error(
+        `Oops! An error occurred when requesting: ${queryString}`
+      );
+    });
+
+  return response;
+  }
+};
+
+MovieBrowser.parseOnLoadForLatestMovies();
+
+</script>
+</body>
+</html>
